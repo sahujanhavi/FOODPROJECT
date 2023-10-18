@@ -1,9 +1,9 @@
 import "./App.css";
 import Home from "./components/Home";
-import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
-import Menu from "./components/Menu";
+import Header from "./components/Layout/Header";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Menu from "./components/Menu";
 import Cart from "./components/cart/Cart";
 import Delivery from "./components/cart/Delivery";
 import Login from "./components/user/Login";
@@ -18,26 +18,39 @@ import NewPassword from "./components/user/NewPassword";
 import ConfirmOrder from "./components/cart/ConfirmOrder";
 import Payment from "./components/cart/Payment";
 
-
-// Payment
+//Payment
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import axios from "axios";
 import OrderSuccess from "./components/cart/OrderSuccess";
 import ListOrders from "./components/order/ListOrders";
 import OrderDetails from "./components/order/OrderDetails";
+import { useSelector } from "react-redux";
 
 function App() {
   const [stripeApiKey, setStripeApiKey] = useState("");
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
+  // dispatched exactly once when the component is first rendered , and check if user is Authenticated
   useEffect(() => {
     store.dispatch(loadUser());
-    async function getStripeApiKey() {
-      const { data } = await axios.get("/api/v1/stripeapi");
-      setStripeApiKey(data.stripeApiKey);
-    }
-    getStripeApiKey();
   }, []);
+
+  // this useEffect will trigger when isAuthenticated variable changes
+  useEffect(() => {
+    async function getStripeApiKey() {
+      try {
+        const { data } = await axios.get("/api/v1/stripeapi");
+        setStripeApiKey(data.stripeApiKey);
+      } catch (error) {
+        console.error("Error fetching Stripe API key:", error);
+      }
+    }
+    if (isAuthenticated) {
+      getStripeApiKey();
+    }
+  }, [isAuthenticated]);
+
   return (
     <Router>
       <div className="App">
@@ -45,11 +58,16 @@ function App() {
         <div className="container container-fluid">
           <Routes>
             <Route path="/" element={<Home />} exact />
-            <Route path="/eats/stores/search/:keyword" element={<Home />} exact />
+            <Route
+              path="/eats/stores/search/:keyword"
+              element={<Home />}
+              exact
+            />
             <Route path="/eats/stores/:id/menus" element={<Menu />} exact />
             <Route path="/cart" element={<Cart />} exact />
             <Route path="/delivery" element={<Delivery />} exact />
-            {/* Users */}
+
+            {/* User  */}
             <Route path="/users/login" element={<Login />} />
             <Route path="/users/signup" element={<Register />} />
             <Route path="/users/me" element={<Profile />} />
@@ -66,7 +84,7 @@ function App() {
             />
             <Route path="/confirm" element={<ConfirmOrder />} />
 
-            {/* Payemnt */}
+            {/* //payment */}
             {stripeApiKey && (
               <Route
                 path="/payment"
@@ -77,7 +95,10 @@ function App() {
                 }
               />
             )}
+
+            {/* OrderSuccess */}
             <Route path="/success" element={<OrderSuccess />} />
+            {/* OrderList */}
             <Route path="/eats/orders/me/myOrders" element={<ListOrders />} />
             <Route path="/eats/orders/:id" element={<OrderDetails />} />
           </Routes>
